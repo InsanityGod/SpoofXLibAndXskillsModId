@@ -1,0 +1,10 @@
+{
+  "type": "code",
+  "modid": "spoofxlibandxskillsmodid",
+  "name": "XLib/XSkills fork compatibility fix",
+  "authors": [
+    "TheInsanityGod"
+  ],
+  "description": "A small mod that makes the xlib and xskills forks be considered as xlib and xskills so that compatibility patches of other mods actually trigger",
+  "version": "1.0.0"
+}
