@@ -5,6 +5,6 @@
   "authors": [
     "TheInsanityGod"
   ],
-  "description": "A small mod that makes the xlib and xskills forks be considered as xlib and xskills so that compatibility patches of other mods actually trigger",
+  "description": "A small mod that makes the xlib and xskills forks act as if they are xlib and xskills by spoofing the modid",
   "version": "1.0.0"
 }
