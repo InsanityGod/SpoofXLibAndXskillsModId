@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Vintagestory.API.Common;
 using Vintagestory.Common;
+using Vintagestory.Server;
 
 namespace SpoofXLibAndXskillsModId;
 
@@ -39,7 +40,7 @@ public class SpoofXLibAndXkillsModIdModSystem : ModSystem
             var XSkillsSystem = api.ModLoader.Systems.FirstOrDefault(XSkillsType.IsInstanceOfType);
             if(XSkillsSystem is not null && XSkillsSystem.Mod.Info.ModID != "xskills")
             {
-                SpoofPatchClass.SpoofedModIDs.Add(XSkillsSystem.Mod.Info.ModID);
+                SpoofPatchClass.OriginalModIDs["xskills"] = XSkillsSystem.Mod.Info.ModID;
                 loadedModes["xskills"] = loadedModes[XSkillsSystem.Mod.Info.ModID];
                 loadedModes.Remove(XSkillsSystem.Mod.Info.ModID);
                 XSkillsSystem.Mod.Info.ModID = "xskills";
@@ -51,7 +52,7 @@ public class SpoofXLibAndXkillsModIdModSystem : ModSystem
             var XLibSystem = api.ModLoader.Systems.FirstOrDefault(XLibType.IsInstanceOfType);
             if(XLibSystem is not null && XLibSystem.Mod.Info.ModID != "xlib")
             {
-                SpoofPatchClass.SpoofedModIDs.Add(XLibSystem.Mod.Info.ModID);
+                SpoofPatchClass.OriginalModIDs["xlib"] = XLibSystem.Mod.Info.ModID;
                 loadedModes["xlib"] = loadedModes[XLibSystem.Mod.Info.ModID];
                 loadedModes.Remove(XLibSystem.Mod.Info.ModID);
                 XLibSystem.Mod.Info.ModID = "xlib";
@@ -64,6 +65,7 @@ public class SpoofXLibAndXkillsModIdModSystem : ModSystem
         base.Dispose();
         new Harmony(modId).UnpatchAll(modId);
         SpoofPatchClass.SpoofedModIDs.Clear();
+        SpoofPatchClass.OriginalModIDs.Clear();
     }
 }
 
@@ -71,17 +73,34 @@ public class SpoofXLibAndXkillsModIdModSystem : ModSystem
 public static class SpoofPatchClass
 {
     internal static readonly HashSet<string> SpoofedModIDs = [];
+    internal static readonly Dictionary<string, string> OriginalModIDs = [];
 
     //Premature spoofing for the event that someone checks for modID before startPre
     [HarmonyPatch(typeof(ModLoader), nameof(ModLoader.IsModEnabled))]
     [HarmonyPrefix]
     public static bool Prefix(string modID, ref bool __result)
     {
-        if(SpoofedModIDs.Contains(modID))
+        if(SpoofedModIDs.Contains(modID) || OriginalModIDs.ContainsValue(modID))
         {
             __result = true;
             return false;
         }
         return true;
+    }
+
+    //Prevents server from sending the wrong modID to clients, which would cause them to try and download the original mod
+    [HarmonyPatch(typeof(ServerMain), "CreatePacketIdentification")]
+    [HarmonyPostfix]
+    public static void Postfix(Packet_Server __result)
+    {
+        if(__result?.Identification?.Mods is null) return;
+
+        foreach(var mod in __result.Identification.Mods)
+        {
+            if(SpoofPatchClass.OriginalModIDs.TryGetValue(mod.Modid, out string original))
+            {
+                mod.Modid = original;
+            }
+        }
     }
 }
